@@ -1,0 +1,199 @@
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+pool:
+  name: Axion-UI-Build-Pool
+
+stages:
+
+# ============================================================
+# STAGE 1 — BUILD
+# ============================================================
+
+- stage: Build
+  displayName: 'Build Axion UI'
+
+  jobs:
+
+  - job: BuildAxionUI
+    displayName: 'Build React Application'
+
+    steps:
+
+    # --------------------------------------------------------
+    # 1. Checkout source code
+    # --------------------------------------------------------
+
+    - checkout: self
+      displayName: 'Checkout GitHub Repository'
+
+
+    # --------------------------------------------------------
+    # 2. Install Node.js
+    # --------------------------------------------------------
+
+    - task: NodeTool@0
+      displayName: 'Install Node.js 22'
+      inputs:
+        versionSpec: '22.x'
+
+
+    # --------------------------------------------------------
+    # 3. Show versions
+    # --------------------------------------------------------
+
+    - script: |
+        node --version
+        npm --version
+      displayName: 'Verify Node.js and npm'
+
+
+    # --------------------------------------------------------
+    # 4. Install dependencies
+    # --------------------------------------------------------
+
+    - script: |
+        npm ci
+      displayName: 'Install npm Dependencies'
+
+
+    # --------------------------------------------------------
+    # 5. Build React + Vite application
+    # --------------------------------------------------------
+
+    - script: |
+        npm run build
+      displayName: 'Build Axion UI'
+
+
+    # --------------------------------------------------------
+    # 6. Verify dist folder
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Checking dist folder..."
+        ls -lah dist
+        echo "Build completed successfully."
+      displayName: 'Verify Production Build'
+
+
+    # --------------------------------------------------------
+    # 7. Publish dist/ as Universal Package
+    # --------------------------------------------------------
+
+    - task: UniversalPackages@0
+      displayName: 'Publish Axion UI to Azure Artifacts'
+      inputs:
+        command: 'publish'
+        publishDirectory: '$(Build.SourcesDirectory)/dist'
+        feedsToUsePublish: 'internal'
+        vstsFeedPublish: 'Axion_Deploymnet/Axion-UI-Artifacts'
+        vstsFeedPackagePublish: 'axion-ui'
+        versionOption: 'custom'
+        versionPublish: '1.0.$(Build.BuildId)'
+        packagePublishDescription: 'Axion UI production build'
+
+
+# ============================================================
+# STAGE 2 — DEPLOY
+# ============================================================
+
+- stage: Deploy
+  displayName: 'Deploy Axion UI'
+
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+
+  - job: DeployAxionUI
+    displayName: 'Deploy to Axion UI VM'
+
+    steps:
+
+    # --------------------------------------------------------
+    # 1. Download the package created by Build stage
+    # --------------------------------------------------------
+
+    - task: UniversalPackages@0
+      displayName: 'Download Axion UI Artifact'
+      inputs:
+        command: 'download'
+        feedsToUse: 'internal'
+        vstsFeed: 'Axion_Deploymnet/Axion-UI-Artifacts'
+        vstsFeedPackage: 'axion-ui'
+        vstsPackageVersion: '1.0.$(Build.BuildId)'
+        downloadDirectory: '$(Pipeline.Workspace)/axion-ui'
+
+
+    # --------------------------------------------------------
+    # 2. Verify downloaded files
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Downloaded Axion UI files:"
+        find "$(Pipeline.Workspace)/axion-ui" -maxdepth 2 -type f
+      displayName: 'Verify Downloaded Artifact'
+
+
+    # --------------------------------------------------------
+    # 3. Deploy files to VM
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Preparing deployment directory..."
+
+        rm -rf /home/azureuser/axion-ui-deploy
+        mkdir -p /home/azureuser/axion-ui-deploy
+
+        cp -r "$(Pipeline.Workspace)/axion-ui/." /home/azureuser/axion-ui-deploy/
+
+        echo "Deployment files:"
+        find /home/azureuser/axion-ui-deploy -maxdepth 2 -type f
+      displayName: 'Deploy Files to VM'
+
+
+    # --------------------------------------------------------
+    # 4. Stop previous serve process
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Stopping previous Axion UI server if running..."
+
+        pkill -f "serve -s /home/azureuser/axion-ui-deploy" || true
+
+        echo "Old server stopped."
+      displayName: 'Stop Previous Application'
+
+
+    # --------------------------------------------------------
+    # 5. Start Axion UI
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Starting Axion UI..."
+
+        cd /home/azureuser/axion-ui-deploy
+
+        nohup npx serve -s . -l 3000 > /home/azureuser/axion-ui-server.log 2>&1 &
+
+        sleep 5
+
+        echo "Axion UI server started."
+        cat /home/azureuser/axion-ui-server.log
+      displayName: 'Start Axion UI Server'
+
+
+    # --------------------------------------------------------
+    # 6. Verify application
+    # --------------------------------------------------------
+
+    - script: |
+        echo "Testing Axion UI..."
+
+        curl -I http://localhost:3000
+
+      displayName: 'Verify Application'
