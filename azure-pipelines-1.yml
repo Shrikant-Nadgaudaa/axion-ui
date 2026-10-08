@@ -1,0 +1,48 @@
+# ============================================================
+# PIPELINE TRIGGER
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+# ============================================================
+# AGENT POOL
+# ============================================================
+
+
+pool: 
+  name: Axion-UI-Build-Pool
+
+
+stages:
+
+# ============================================================
+# STAGE 1 — BUILD
+# ============================================================
+  - stage: build
+    displayName: 'Axion_UI_Build'
+    jobs:
+      - job: BuildAxionUI
+        displayName: 'Build React Application'
+
+
+
+        steps:
+
+# --------------------------------------------------------
+# 1. Checkout source code
+# --------------------------------------------------------
+
+        - checkout: self
+          displayName: 'Checkout GitHub Repository'
+        - task: NodeTaskRunnerInstaller@0
+          displayName: 'Install Node.js 22'
+          inputs:
+            versionSpec: '22.x'
+            
+        
+
+        
