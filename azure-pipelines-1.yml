@@ -25,7 +25,7 @@ stages:
   - stage: build
     displayName: 'Axion_UI_Build'
     jobs:
-      - job: BuildAxionUI
+      - job: BuildAxionUI   #ID of the job
         displayName: 'Build React Application'
 
 
