@@ -1,6 +1,6 @@
-# ============================================================
-# PIPELINE TRIGGER
-# ============================================================
+                        # ============================================================
+                        # PIPELINE TRIGGER
+                        # ============================================================
 
 trigger:
   branches:
@@ -8,9 +8,9 @@ trigger:
       - main
       - feature/*
 
-# ============================================================
-# AGENT POOL
-# ============================================================
+                        # ============================================================
+                        # AGENT POOL
+                        # ============================================================
 
 
 pool: 
@@ -19,9 +19,9 @@ pool:
 
 stages:
 
-# ============================================================
-# STAGE 1 — BUILD
-# ============================================================
+                      # ============================================================
+                      # STAGE 1 — BUILD
+                      # ============================================================
   - stage: build
     displayName: 'Axion_UI_Build'
     jobs:
@@ -32,9 +32,9 @@ stages:
 
         steps:
 
-# --------------------------------------------------------
-# 1. Checkout source code
-# --------------------------------------------------------
+                      # --------------------------------------------------------
+                      # 1. Checkout source code
+                      # --------------------------------------------------------
 
         - checkout: self
           displayName: 'Checkout GitHub Repository'
@@ -42,7 +42,54 @@ stages:
           displayName: 'Install Node.js 22'
           inputs:
             versionSpec: '22.x'
-            
-        
 
-        
+
+                      # --------------------------------------------------------
+                      # 2. Check Node.js and npm availability
+                      # --------------------------------------------------------
+
+
+        - script:  |
+            echo "chacking Node.js ......."
+            if command -v node >/dev/null 2>&1; then
+              echo "Node.js is install."
+              node --version
+            else
+              echo "Node.js is not installed."
+
+            fi
+            echo "chacking npm....."
+
+
+            if command -v npm >/dev/null 2>&1; then
+              echo "nmp is installed."
+              npm --version
+            else
+              echo "npm is not installed."
+
+
+            fi
+              echo "chacking npm"
+
+
+                      # --------------------------------------------------------
+                      # 3. Check Node.js and npm
+                      # --------------------------------------------------------
+
+
+        - script: |
+            echo "Checking Node.js version"
+            node --version
+            echo "Chacking npm version"
+            npm --version
+          displayName: 'check Node.js and npm'
+
+                      # --------------------------------------------------------
+                      # 4. Install npm Dependencies
+                      # --------------------------------------------------------
+
+        - script: |
+            echo "installing Project dependencies"
+            npm ci
+          displayName: 'Install npm dependencies'
+
