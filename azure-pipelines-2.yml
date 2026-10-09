@@ -1,0 +1,49 @@
+trigger:
+  branches:
+    include:
+      - main
+      - feature/*
+
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+
+  - stage: TerraformInstall
+    displayName: Terraform Install
+    jobs:
+      - job: TerraformInstall
+        steps:
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: 'latest'
+
+
+  - stage: terraformfmt
+    displayName: terraform fmt
+    jobs: 
+      - job: Terraformfmt
+        displayName: Terraform fmt
+        steps:
+        - task: TerraformTask@5
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            backendAzureRmUseEntraIdForAuthentication: false
+            backendServiceArm: 'Axion-Terraform-Azure 1'
+            backendAzureRmStorageAccountName: 'axionterraformstate01'
+            backendAzureRmContainerName: 'axion-terraform-lab'
+            backendAzureRmKey: 'axion system'
+
+  - stage: 
+    displayName: Terraformvalidate
+    jobs:
+      - job: Terraformvalidate
+        displayName: Terraform validate
+        steps:
+        - task: TerraformTask@5
+          inputs:
+            provider: 'azurerm'
+            command: 'validate'
+
