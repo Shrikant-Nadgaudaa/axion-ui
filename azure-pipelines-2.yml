@@ -20,11 +20,11 @@ stages:
             terraformVersion: 'latest'
 
 
-  - stage: terraformfmt
-    displayName: terraform fmt
+  - stage: terraforminit
+    displayName: terraform init
     jobs: 
-      - job: Terraformfmt
-        displayName: Terraform fmt
+      - job: Terraforinit
+        displayName: Terraform init
         steps:
         - task: TerraformTask@5
           inputs:
@@ -46,4 +46,17 @@ stages:
           inputs:
             provider: 'azurerm'
             command: 'validate'
+
+
+  - stage: 
+    displayName: TerraformPlan
+    jobs:
+      - job: TerraformPlan
+        displayName: Terraform Plan
+        steps:
+        - task: TerraformTask@5
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            environmentServiceNameAzureRM: 'Axion-Terraform-Azure'
 
